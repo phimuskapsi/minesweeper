@@ -145,7 +145,7 @@
 </style>
 <script>
   export default {
-    name: 'Minesweeper',
+    name: 'MinesweeperTables',
 
     data: () => ({
       gameData: {

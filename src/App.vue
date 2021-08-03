@@ -1,19 +1,19 @@
 <template>
   <v-app>    
     <v-main>
-      <Minesweeper/>
+      <MinesweeperTables/>
     </v-main>
   </v-app>
 </template>
 
 <script>
-import Minesweeper from './components/Minesweeper';
+import MinesweeperTables from './components/MinesweeperTables';
 
 export default {
   name: 'App',
 
   components: {
-    Minesweeper,
+    MinesweeperTables,
   },
 
   data: () => ({
