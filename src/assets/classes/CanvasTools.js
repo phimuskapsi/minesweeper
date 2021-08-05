@@ -1,37 +1,8 @@
-class MineHunterEngine {
-    constructor(ctx, $ele) {
-        this.context = ctx;
-        this.$canvas = $ele;
-
-        this.size = {
-            width: 500,
-            height: 500
-        }
-    }
-
-    drawGrid () {
-        this.$canvas.clearRect(0, 0, this.size.width, this.size.height);
-        this.$canvas.beginPath();
-
-        for (let w=0;w<=this.size.width;w+=50){
-            for (let h=0;h<=this.size.height;h+=50){
-            
-            }
-        }
-    }
-
-    setSize (w,h) {
-        this.size.height = h;
-        this.size.width = w;        
-        
-        this.drawGrid();
-    }
-}
-
 class MineHunterGame {
     constructor() {
         // Main Drawing Backbone
         this.MHEngine = new MineHunterEngine();
+        this.MHEvents = new MineHunterEvents();
 
         this.running = false
         this.timer = null;
@@ -244,14 +215,44 @@ class MineHunterGame {
     }
 }
 
+class MineHunterEngine extends MineHunterGame {
+    constructor(ctx, $ele) {
+        this.context = ctx;
+        this.$canvas = $ele;
+
+        this.size = {
+            width: this.gameData.size * 50,
+            height: this.gameData.size * 50
+        }
+    }
+
+    drawGrid () {
+        this.$canvas.clearRect(0, 0, this.size.width, this.size.height);
+        this.$canvas.beginPath();
+
+        for (let w=0;w<=this.size.width;w+=50){
+            for (let h=0;h<=this.size.height;h+=50){
+                
+            }
+        }
+    }
+
+    setSize (w,h) {
+        this.size.height = h;
+        this.size.width = w;        
+        
+        this.drawGrid();
+    }
+}
+
 // Event Handler for the Game
-class MineHunterGameEvents extends MineHunterGame {
+class MineHunterEvents extends MineHunterGame {
     constructor() {
         super();        
     }
 
     findGridLoc (event) {
-        let box = this.MHEngine.$canvas.getBoundingClientRect();
+        let box = this.$canvas.getBoundingClientRect();
         let mouse = {
             x: event.clientX - box.left,
             y: event.clientY - box.top

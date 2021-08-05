@@ -1,23 +1,30 @@
 <template>
   <v-app>    
     <v-main>
-      <MinesweeperTables/>
+      <v-container>
+      
+        
+            <MinesweeperCanvas ref="minesweeper"/>
+                     
+        
+      </v-container>
     </v-main>
   </v-app>
 </template>
 
 <script>
-import MinesweeperTables from './components/MinesweeperTables';
+import MinesweeperCanvas from './components/MinesweeperCanvas';
 
 export default {
   name: 'App',
 
   components: {
-    MinesweeperTables,
+    MinesweeperCanvas,
   },
 
   data: () => ({
-    //
+
   }),
+  
 };
 </script>
