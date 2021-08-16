@@ -26,7 +26,8 @@
         grids: {
             minefield: [],
             guesses: [],
-            mines: []
+            mines: [],
+            mine_graphics: []
         },
         face: null,
         highscores: [],
@@ -45,6 +46,31 @@
         timer: null,
     }),
     methods: {
+        cellTest(x, y) {
+            for (let ty = -1;ty<2; ty++) {
+                for (let tx = -1;tx<2; tx++) {
+                    let testX = x + tx;
+                    let testY = y + ty;         
+                    
+                    if (testY < 0 || testX < 0 || testY >= this.settings.rows || testX >= this.settings.cols) continue;     
+                    let tested = this.grids.minefield[testY][testX].value;
+                    let visible = this.grids.minefield[testY][testX].visible;
+                    // Skip OB tests                     
+
+                    if (tested >= 0 && !visible) {
+                        this.grids.mine_graphics[y][x].gameOptions.pressed = true;
+                        this.grids.minefield[testY][testX].visible = true;
+                        this.drawNumber(testX, testY);
+                        
+                        // Note to self: Can you create 'watcher' custom events? Or should we just draw
+
+                        if(tested === 0 && !visible) {
+                            this.cellTest(testX, testY);
+                        }
+                    }
+                }
+            }
+        },
         drawCols () {
             let col = new PIXI.Graphics(), cx = 0;
             // Draw the cols
@@ -74,7 +100,7 @@
                             alpha: 1
                         })
                         .beginFill(0xD3D3D3, 1)
-                        .drawRect(r * this.settings.grid_size, c * this.settings.grid_size, this.settings.grid_size, this.settings.grid_size)
+                        .drawRect(c * this.settings.grid_size, r * this.settings.grid_size, this.settings.grid_size, this.settings.grid_size)
                         .endFill();
 
                     mineIn
@@ -84,17 +110,18 @@
                             alpha: 1
                         })
                         .beginFill(0xefefef, 1)
-                        .drawRect(r * this.settings.grid_size + 2, c * this.settings.grid_size + 2, this.settings.grid_size-4, this.settings.grid_size-4)
+                        .drawRect(c * this.settings.grid_size + 2, r * this.settings.grid_size + 2, this.settings.grid_size-4, this.settings.grid_size-4)
                         .endFill();
 
                     this.Pixi.stage.addChild(mine);
                     this.Pixi.stage.addChild(mineIn);
                     mineIn.interactive = true;
-                    mineIn.hitArea = new PIXI.Rectangle(r * this.settings.grid_size + 2, c * this.settings.grid_size + 2, this.settings.grid_size-4, this.settings.grid_size-4);
+                    mineIn.hitArea = new PIXI.Rectangle(c * this.settings.grid_size + 2, r * this.settings.grid_size + 2, this.settings.grid_size-4, this.settings.grid_size-4);
                     mineIn.gameOptions = {
                         flag: 0,
                         pressed: false,
-                        hover: false                        
+                        x: c,
+                        y: r
                     };
 
                     mineIn.gameGraphics = {
@@ -106,7 +133,7 @@
                                 alignment:0
                             })
                             .beginFill(0xbababa, 1)
-                            .drawRect(r * this.settings.grid_size + 2, c * this.settings.grid_size + 2, this.settings.grid_size-4, this.settings.grid_size-4)
+                            .drawRect(c * this.settings.grid_size + 2, r * this.settings.grid_size + 2, this.settings.grid_size-4, this.settings.grid_size-4)
                             .endFill(),
                         flag: new PIXI.Graphics().lineStyle({
                                 width:4, 
@@ -115,7 +142,7 @@
                                 alignment:0
                             })
                             .beginFill(0xbe1919, 1)
-                            .drawRect(r * this.settings.grid_size + 2, c * this.settings.grid_size + 2, this.settings.grid_size-4, this.settings.grid_size-4)
+                            .drawRect(c * this.settings.grid_size + 2, r * this.settings.grid_size + 2, this.settings.grid_size-4, this.settings.grid_size-4)
                             .endFill(),
                         question: new PIXI.Graphics().lineStyle({
                                 width:4, 
@@ -124,26 +151,35 @@
                                 alignment:0
                             })
                             .beginFill(0x3b3be8, 1)
-                            .drawRect(r * this.settings.grid_size + 2, c * this.settings.grid_size + 2, this.settings.grid_size-4, this.settings.grid_size-4)
+                            .drawRect(c * this.settings.grid_size + 2, r * this.settings.grid_size + 2, this.settings.grid_size-4, this.settings.grid_size-4)
                             .endFill(),
                     };
                     // Can pass 'event/mouseData'
                     mineIn.mouseover = (event) => {                          
                         let self = event.currentTarget;       
-                        if (self.gameOptions.flag === 0) {                                
+                        if (self.gameOptions.flag === 0 && !self.gameOptions.pressed) {                                
                             this.Pixi.stage.addChild(self.gameGraphics.mine);
                         }
                     }
                     // Can pass 'event/mouseData'
                     mineIn.mouseout = (event) => {
                         let self = event.currentTarget;   
-                        if (self.gameOptions.flag === 0) { 
+                        if (self.gameOptions.flag === 0 && !self.gameOptions.pressed) { 
                             this.Pixi.stage.removeChild(self.gameGraphics.mine);
                         }
                     }
 
-                    mineIn.click = () => {
-
+                    mineIn.click = (event) => {
+                        let self = event.currentTarget;
+                        this.grids.mine_graphics[self.gameOptions.y][self.gameOptions.x].gameOptions.pressed = true;   
+                        if (!this.lookupMine(self.gameOptions.x, self.gameOptions.y)) {
+                            // Show the cell
+                            this.findClearCells(self.gameOptions.x, self.gameOptions.y);
+                        } else {
+                            //
+                            this.stopGame();
+                            return;
+                        }
                     }
 
                     mineIn.rightclick = (event) => {                        
@@ -165,17 +201,43 @@
                         }
                     }
 
-                    let fontStyle = {
-                        font: '24px Courier, monospace',
-                        fill: '#000000'
-                    }
-                
-                    let number = new PIXI.Text(this.grids.minefield[r][c].value, fontStyle);
-                    number.x = r * this.settings.grid_size + 18;
-                    number.y = c * this.settings.grid_size + 10;
-                    this.Pixi.stage.addChild(number);
+                    this.grids.mine_graphics[r][c] = mineIn;
                 }
             }
+        },
+        drawNumber (x,y) {
+            let number = null;
+            let numberColors = [
+                0x222222,
+                0x85d0ff,
+                0x9d85ff,
+                0x34c96e,
+                0xc98b34,
+                0xc93461,
+                0xc95234,
+                0xff0000
+            ];
+
+            let cellValue = this.grids.minefield[y][x].value;
+            let fontStyle = {
+                font: '24px Courier, monospace',
+                fill: cellValue >= 0 ? numberColors[(cellValue - 1)] : 0x000000
+            }
+
+            if(this.grids.minefield[y][x].bomb) {
+                number = new PIXI.Text('B', fontStyle);   
+            } else {
+                if(cellValue > 0) {
+                    number = new PIXI.Text(cellValue, fontStyle);
+                } else {
+                    this.Pixi.stage.addChild(this.grids.mine_graphics[y][x].gameGraphics.mine);
+                    return;
+                }
+            }
+            number.x = x * this.settings.grid_size + 18;
+            number.y = y * this.settings.grid_size + 10;     
+            this.grids.mine_graphics[y][x].gameOptions.pressed = true;       
+            this.Pixi.stage.addChild(number);
         },
         drawRows () {
             let row = new PIXI.Graphics(), ry = 0;
@@ -202,6 +264,22 @@
             //this.drawCols();
             this.drawMines();
         },
+        findClearCells(x, y){
+            console.log(x + ' - ' + y);
+            let cellVal = this.grids.minefield[y][x].value;
+
+            // Since our targeted clicked cell is 0, let us see if any other contiguous 0's are around      
+            if(cellVal === 0) {
+                // Recursively check around the clicked area
+                this.cellTest(x, y);
+            } else {
+                // Not a zero, so show it, whatever it may be.
+                this.grids.minefield[y][x].visible = true;
+                this.grids.mine_graphics[y][x].gameOptions.pressed = true;      
+                this.drawNumber(x, y);
+                 // Note to self: Can you create 'watcher' custom events? Or should we just draw
+            }
+        },
         getMine() {
             var minePosX = this.getRandom(this.settings.cols);
             var minePosY = this.getRandom(this.settings.rows);
@@ -218,6 +296,7 @@
             return Math.floor(Math.random() * max);
         }, 
         initGame() {
+            this.grids.mine_graphics = [];
             this.grids.minefield = [];
             this.grids.guesses = [];
             this.grids.mines = [];
@@ -235,12 +314,13 @@
             
             this.initGridData();
             this.drawGrid();            
-            this.createGame();
+            //this.createGame();
         }, 
         initGridData () {         
             for(var r=0;r<this.settings.rows;r++) {
                 this.grids.minefield.push([]);
                 this.grids.guesses.push([]);
+                this.grids.mine_graphics.push([]);
                 for(var c=0;c<this.settings.cols;c++) {
                     this.grids.minefield[r].push(
                         { 
@@ -254,6 +334,14 @@
                     this.grids.guesses[r].push(
                         {
                             flag: 0 
+                        }
+                    );
+
+                    this.grids.mine_graphics[r].push(
+                        { 
+                            mine: null, 
+                            flag: null,
+                            question: null 
                         }
                     );
                 }
