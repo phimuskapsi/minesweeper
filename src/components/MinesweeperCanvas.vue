@@ -18,11 +18,13 @@
 </style>
 <script>
     import * as PIXI from 'pixi.js';
+    import MinesweeperParticleEngine from '../plugins/gameParticles.js';
   export default {
     name: 'MinesweeperCanvas',
 
     data: () => ({
-        Pixi: null,
+        MPE: null,
+        Pixi: null,        
         grids: {
             minefield: [],
             guesses: [],
@@ -87,12 +89,18 @@
                 this.Pixi.stage.addChild(col);         
             }
         },
+        drawExplosion (target) {           
+            this.MPE.drawExplosion(target.hitArea.x, target.hitArea.y);
+            //this.MPE.emitter.destroy();
+        },
         drawMines () {
             // Draw the minefield, we need to do this for event reasons
             for (let r=0;r<this.settings.rows;r++) {    
                 for (let c=0;c<this.settings.cols;c++) {
                     let mine = new PIXI.Graphics();
                     let mineIn = new PIXI.Graphics();
+                    let rectX = (c * this.settings.grid_size) + this.settings.grid_size;
+                    let rectY = (r * this.settings.grid_size) + this.settings.grid_size;
                     mine
                         .lineStyle({
                             width:2, 
@@ -100,7 +108,7 @@
                             alpha: 1
                         })
                         .beginFill(0xD3D3D3, 1)
-                        .drawRect(c * this.settings.grid_size, r * this.settings.grid_size, this.settings.grid_size, this.settings.grid_size)
+                        .drawRect(rectX, rectY, this.settings.grid_size, this.settings.grid_size)
                         .endFill();
 
                     mineIn
@@ -110,13 +118,13 @@
                             alpha: 1
                         })
                         .beginFill(0xefefef, 1)
-                        .drawRect(c * this.settings.grid_size + 2, r * this.settings.grid_size + 2, this.settings.grid_size-4, this.settings.grid_size-4)
+                        .drawRect(rectX + 2, rectY + 2, this.settings.grid_size-4, this.settings.grid_size-4)
                         .endFill();
 
                     this.Pixi.stage.addChild(mine);
                     this.Pixi.stage.addChild(mineIn);
                     mineIn.interactive = true;
-                    mineIn.hitArea = new PIXI.Rectangle(c * this.settings.grid_size + 2, r * this.settings.grid_size + 2, this.settings.grid_size-4, this.settings.grid_size-4);
+                    mineIn.hitArea = new PIXI.Rectangle(rectX + 2, rectY + 2, this.settings.grid_size-4, this.settings.grid_size-4);
                     mineIn.gameOptions = {
                         flag: 0,
                         pressed: false,
@@ -133,7 +141,7 @@
                                 alignment:0
                             })
                             .beginFill(0xbababa, 1)
-                            .drawRect(c * this.settings.grid_size + 2, r * this.settings.grid_size + 2, this.settings.grid_size-4, this.settings.grid_size-4)
+                            .drawRect(rectX + 2, rectY + 2, this.settings.grid_size-4, this.settings.grid_size-4)
                             .endFill(),
                         flag: new PIXI.Graphics().lineStyle({
                                 width:4, 
@@ -142,7 +150,7 @@
                                 alignment:0
                             })
                             .beginFill(0xbe1919, 1)
-                            .drawRect(c * this.settings.grid_size + 2, r * this.settings.grid_size + 2, this.settings.grid_size-4, this.settings.grid_size-4)
+                            .drawRect(rectX + 2, rectY + 2, this.settings.grid_size-4, this.settings.grid_size-4)
                             .endFill(),
                         question: new PIXI.Graphics().lineStyle({
                                 width:4, 
@@ -151,7 +159,7 @@
                                 alignment:0
                             })
                             .beginFill(0x3b3be8, 1)
-                            .drawRect(c * this.settings.grid_size + 2, r * this.settings.grid_size + 2, this.settings.grid_size-4, this.settings.grid_size-4)
+                            .drawRect(rectX + 2, rectY + 2, this.settings.grid_size-4, this.settings.grid_size-4)
                             .endFill(),
                     };
                     // Can pass 'event/mouseData'
@@ -177,6 +185,7 @@
                             this.findClearCells(self.gameOptions.x, self.gameOptions.y);
                         } else {
                             //
+                            this.drawExplosion(self);
                             this.stopGame();
                             return;
                         }
@@ -234,13 +243,13 @@
                     return;
                 }
             }
-            number.x = x * this.settings.grid_size + 18;
-            number.y = y * this.settings.grid_size + 10;     
+            number.x = (x + 1) * this.settings.grid_size + 18;
+            number.y = (y + 1) * this.settings.grid_size + 10;     
             this.grids.mine_graphics[y][x].gameOptions.pressed = true;       
             this.Pixi.stage.addChild(number);
         },
         drawRows () {
-            let row = new PIXI.Graphics(), ry = 0;
+            let row = new PIXI.Graphics(), ry = 50;
              for (let r=0;r<this.settings.rows;r++) {     
                 row.lineStyle({
                     width: 2,
@@ -437,13 +446,14 @@
         }
     },
     mounted() {
-        this.settings.height = this.settings.grid_size * this.settings.rows;
-        this.settings.width = this.settings.grid_size * this.settings.cols;
+        let particleRules = require('../assets/particles/emitter.json');
+
+        this.settings.height = (this.settings.grid_size * this.settings.rows) + (this.settings.grid_size * 2);
+        this.settings.width = (this.settings.grid_size * this.settings.cols) + (this.settings.grid_size * 2);
 
         this.Pixi = new PIXI.Application({
-            transparent:false,
             antialias: true,
-            backgroundColor: 0xcecece,
+            backgroundColor: 0x333333,
             height: this.settings.height,
             width: this.settings.width
         });        
@@ -456,7 +466,8 @@
         this.$el.querySelector('#minefield').addEventListener('contextmenu', e => {
             e.preventDefault();
         })
-
+        
+        this.MPE = new MinesweeperParticleEngine(particleRules, PIXI, this.Pixi, this.settings);
     },
      watch: {
       running: function(isRunning) {
