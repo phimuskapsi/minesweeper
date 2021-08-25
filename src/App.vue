@@ -1,30 +1,23 @@
 <template>
-  <v-app>    
-    <v-main>
-      <v-container>
-      
-        
-            <MinesweeperCanvas ref="minesweeper"/>
-                     
-        
-      </v-container>
-    </v-main>
+  <v-app>
+    <GameField />
   </v-app>
 </template>
 
 <script>
-import MinesweeperCanvas from './components/MinesweeperCanvas';
+import GameField from "./components/GameField";
 
 export default {
-  name: 'App',
-
+  name: "App",
   components: {
-    MinesweeperCanvas,
+    GameField
   },
-
-  data: () => ({
-
-  }),
-  
+  data: () => ({})
 };
 </script>
+<style>
+@font-face {
+  font-family: "KarmaticArcade";
+  src: url(./fonts/ka1.ttf) format("truetype");
+}
+</style>
